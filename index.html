@@ -2,6 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Enigma a tre livelli</title>
   <style>
     body {
@@ -9,17 +10,22 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
+      justify-content: flex-start;
+      min-height: 100vh;
       background-color: #f9f9f9;
       text-align: center;
       padding: 20px;
-      margin: 0;
+      box-sizing: border-box;
+    }
+    h2 {
+      font-size: 1.2rem;
     }
     input, button {
       margin-top: 10px;
       font-size: 1rem;
-      padding: 8px;
+      padding: 10px;
+      width: 90%;
+      max-width: 300px;
     }
     .hidden {
       display: none;
@@ -29,11 +35,18 @@
       font-weight: bold;
       color: darkred;
     }
-    small {
-      display: block;
-      margin-top: 10px;
+    .small {
       font-size: 0.8rem;
-      color: gray;
+      margin-top: 10px;
+    }
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 10;
     }
   </style>
 </head>
@@ -55,8 +68,8 @@
       Il dolore della tua assenza è acuto e struggente,<br />
       e darei qualsiasi cosa per non conoscerlo;<br />
       qualsiasi cosa tranne non conoscerti affatto (che sarebbe peggio)
-      <small>se hai difficoltà con questa risposta hai diritto ad un indizio, chiedi pure a Deni</small>
     </h2>
+    <div class="small">se hai difficoltà con questa risposta hai diritto ad un indizio, chiedi pure a Deni</div>
     <input type="text" id="answer2" placeholder="Risposta..." autocomplete="off" />
     <button onclick="checkAnswer(2)">Conferma</button>
     <div id="result2"></div>
@@ -76,9 +89,8 @@
       Ma bravi ELIBOBI, con questo posso dire che avete davvero giocato ad Outer Wilds, bello eh?<br><br>
       Non è una storia dove un eroe salva tutti, ma una storia che insegna che a volte bisogna accettare che sia finita, e il viaggio che ha portato alla fine è più piacevole con degli amici al tuo fianco.
     </h2>
+    <canvas id="fireworks"></canvas>
   </div>
-
-  <canvas id="fireworks" class="hidden" style="position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;"></canvas>
 
 <script>
   const answers = {
@@ -147,27 +159,19 @@
       return;
     }
 
-    let correct = false;
-
-    if (Array.isArray(answers[level])) {
-      correct = answers[level].includes(userAnswer);
-    } else {
-      correct = userAnswer === answers[level];
-    }
+    const correct = Array.isArray(answers[level])
+      ? answers[level].some(a => a === userAnswer)
+      : userAnswer === answers[level];
 
     if (correct) {
       resultEl.innerText = messages[level] || "";
       localStorage.removeItem(storageKey(level, "attempts"));
       localStorage.removeItem(storageKey(level, "lockTime"));
 
-      if (level === 1) {
-        document.getElementById("level1").classList.add("hidden");
-        document.getElementById("level2").classList.remove("hidden");
-      } else if (level === 2) {
-        document.getElementById("level2").classList.add("hidden");
-        document.getElementById("level3").classList.remove("hidden");
-      } else if (level === 3) {
-        document.getElementById("level3").classList.add("hidden");
+      document.getElementById(`level${level}`).classList.add("hidden");
+      if (level < 3) {
+        document.getElementById(`level${level + 1}`).classList.remove("hidden");
+      } else {
         document.getElementById("final").classList.remove("hidden");
         startFireworks();
       }
@@ -186,63 +190,62 @@
     }
   }
 
-  function startFireworks() {
-    const canvas = document.getElementById("fireworks");
-    const ctx = canvas.getContext("2d");
-    canvas.classList.remove("hidden");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles = [];
-
-    function createFirework() {
-      const x = Math.random() * canvas.width;
-      const y = Math.random() * canvas.height / 2;
-      const color = `hsl(${Math.random() * 360}, 100%, 60%)`;
-
-      for (let i = 0; i < 50; i++) {
-        particles.push({
-          x, y,
-          vx: (Math.random() - 0.5) * 5,
-          vy: (Math.random() - 0.5) * 5,
-          alpha: 1,
-          color
-        });
-      }
-    }
-
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      particles.forEach((p, i) => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.alpha -= 0.01;
-
-        if (p.alpha <= 0) {
-          particles.splice(i, 1);
-        } else {
-          ctx.globalAlpha = p.alpha;
-          ctx.fillStyle = p.color;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      });
-
-      ctx.globalAlpha = 1;
-      requestAnimationFrame(animate);
-    }
-
-    setInterval(createFirework, 500);
-    animate();
-  }
-
   window.onload = () => {
     [1, 2, 3].forEach(level => {
       if (isLocked(level)) updateLockMessage(level);
     });
   };
+
+  // Fuochi d'artificio semplici
+  function startFireworks() {
+    const canvas = document.getElementById("fireworks");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let particles = [];
+
+    function createParticle(x, y) {
+      const angle = Math.random() * 2 * Math.PI;
+      const speed = Math.random() * 5 + 2;
+      return {
+        x, y,
+        dx: Math.cos(angle) * speed,
+        dy: Math.sin(angle) * speed,
+        radius: 2 + Math.random() * 2,
+        alpha: 1
+      };
+    }
+
+    function explode() {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height / 2;
+      for (let i = 0; i < 30; i++) {
+        particles.push(createParticle(x, y));
+      }
+    }
+
+    function updateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach((p, i) => {
+        p.x += p.dx;
+        p.y += p.dy;
+        p.alpha -= 0.01;
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+        } else {
+          ctx.fillStyle = `rgba(255, 100, 0, ${p.alpha})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      });
+      requestAnimationFrame(updateParticles);
+    }
+
+    setInterval(explode, 1000);
+    updateParticles();
+  }
 </script>
 
 </body>
