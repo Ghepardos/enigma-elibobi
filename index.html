@@ -45,8 +45,8 @@
 
   <div id="level2" class="hidden">
     <h2>
-      Il dolore della tua assenza è acuto e struggente,<br />
-      e darei qualsiasi cosa per non conoscerlo;<br />
+      Il dolore della tua assenza è acuto e ossessionante,<br />
+      e darei qualsiasi cosa per non saperlo;<br />
       qualsiasi cosa tranne non conoscerti affatto (che sarebbe peggio)
     </h2>
     <input type="text" id="answer2" placeholder="Risposta..." autocomplete="off" />
@@ -86,8 +86,7 @@
 
   function checkAnswer(level) {
     if (isLocked(level)) {
-      const unlockDate = new Date(parseInt(localStorage.getItem(storageKey(level, "lockTime"))));
-      document.getElementById(`result${level}`).innerText = `EH! VOLEVI! GUARDA CHE FACCIA, NON SE L'ASPETTAVA ${level}.' Riprova dopo il ${unlockDate.toLocaleString()}`;
+      document.getElementById(`result${level}`).innerText = "EH! VOLEVI! Guarda che faccia non se lo aspettava";
       return;
     }
 
@@ -119,9 +118,9 @@
       if (attempts >= maxAttempts) {
         const lockUntil = Date.now() + blockDurationMs;
         localStorage.setItem(storageKey(level, "lockTime"), lockUntil);
-        document.getElementById(`result${level}`).innerText = `Hai esaurito i tentativi per il livello ${level}. Riprova tra 24 ore (${new Date(lockUntil).toLocaleString()}).`;
+        document.getElementById(`result${level}`).innerText = "EH! VOLEVI! Guarda che faccia non se lo aspettava";
       } else {
-        document.getElementById(`result${level}`).innerText = `Risposta errata. Tentativi rimasti: ${maxAttempts - attempts}`;
+        document.getElementById(`result${level}`).innerText = "Attento sig. tartaruga, non sparare nomi a cazzo.";
       }
     }
   }
@@ -129,8 +128,7 @@
   window.onload = () => {
     for(let level=1; level<=2; level++) {
       if (isLocked(level)) {
-        const unlockDate = new Date(parseInt(localStorage.getItem(storageKey(level, "lockTime"))));
-        document.getElementById(`result${level}`).innerText = `Hai superato i tentativi per il livello ${level}. Riprova dopo il ${unlockDate.toLocaleString()}`;
+        document.getElementById(`result${level}`).innerText = "EH! VOLEVI! Guarda che faccia non se lo aspettava";
       }
     }
   };
