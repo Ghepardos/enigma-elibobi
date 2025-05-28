@@ -87,7 +87,7 @@
   function checkAnswer(level) {
     if (isLocked(level)) {
       const unlockDate = new Date(parseInt(localStorage.getItem(storageKey(level, "lockTime"))));
-      document.getElementById(`result${level}`).innerText = `EH! VOLEVI! GUARDA CHE FACCIA, NON SE L'ASPETTAVA ${level}. Riprova dopo il ${unlockDate.toLocaleString()}`;
+      document.getElementById(`result${level}`).innerText = `EH! VOLEVI! GUARDA CHE FACCIA, NON SE L'ASPETTAVA ${level}.' Riprova dopo il ${unlockDate.toLocaleString()}`;
       return;
     }
 
