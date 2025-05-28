@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <title>Enigma a due livelli</title>
+  <title>Enigma a tre livelli</title>
   <style>
     body {
       font-family: sans-serif;
@@ -14,6 +14,7 @@
       background-color: #f9f9f9;
       text-align: center;
       padding: 20px;
+      margin: 0;
     }
     input, button {
       margin-top: 10px;
@@ -23,10 +24,16 @@
     .hidden {
       display: none;
     }
-    #result {
+    #result1, #result2, #result3 {
       margin-top: 20px;
       font-weight: bold;
       color: darkred;
+    }
+    small {
+      display: block;
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: gray;
     }
   </style>
 </head>
@@ -48,23 +55,36 @@
       Il dolore della tua assenza è acuto e struggente,<br />
       e darei qualsiasi cosa per non conoscerlo;<br />
       qualsiasi cosa tranne non conoscerti affatto (che sarebbe peggio)
+      <small>se hai difficoltà con questa risposta hai diritto ad un indizio, chiedi pure a Deni</small>
     </h2>
     <input type="text" id="answer2" placeholder="Risposta..." autocomplete="off" />
     <button onclick="checkAnswer(2)">Conferma</button>
     <div id="result2"></div>
   </div>
 
+  <div id="level3" class="hidden">
+    <h2>
+      Al personaggio "buono" nel DLC manca una caratteristica fisica che invece gli altri personaggi hanno, quale?
+    </h2>
+    <input type="text" id="answer3" placeholder="Risposta..." autocomplete="off" />
+    <button onclick="checkAnswer(3)">Conferma</button>
+    <div id="result3"></div>
+  </div>
+
   <div id="final" class="hidden">
     <h2>
       Ma bravi ELIBOBI, con questo posso dire che avete davvero giocato ad Outer Wilds, bello eh?<br><br>
-      Non è una storia dove un eroe salva tutti, ma una stora che insegna che a volte bisogna accettare che sia finita, e il viaggio che ha portato alla fine è più piacevole con degli amici al tuo fianco.
+      Non è una storia dove un eroe salva tutti, ma una storia che insegna che a volte bisogna accettare che sia finita, e il viaggio che ha portato alla fine è più piacevole con degli amici al tuo fianco.
     </h2>
   </div>
+
+  <canvas id="fireworks" class="hidden" style="position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;"></canvas>
 
 <script>
   const answers = {
     1: "riebeck",
-    2: "plume"
+    2: "plume",
+    3: ["corno", "un corno", "il corno"]
   };
 
   const messages = {
@@ -73,7 +93,7 @@
   };
 
   const maxAttempts = 2;
-  const blockDurationMs = 24 * 60 * 60 * 1000; // 24 ore
+  const blockDurationMs = 24 * 60 * 60 * 1000;
 
   function storageKey(level, key) {
     return `enigma_level${level}_${key}`;
@@ -90,7 +110,6 @@
   function updateLockMessage(level) {
     const resultEl = document.getElementById(`result${level}`);
     const lockTime = localStorage.getItem(storageKey(level, "lockTime"));
-
     if (!lockTime) return;
 
     const interval = setInterval(() => {
@@ -103,7 +122,7 @@
         localStorage.removeItem(storageKey(level, "lockTime"));
         localStorage.removeItem(storageKey(level, "attempts"));
       } else {
-        resultEl.innerText = `EH! VOLEVI! Guarda che faccia non se lo aspettava. Puoi riprovare tra: ${formatTime(remaining)}`;
+        resultEl.innerText = `EH! VOLEVI! Gurada che faccia non se lo aspettava. Sei proprio un Partot, adesso per riprovare devi aspettare ancora: ${formatTime(remaining)}`;
       }
     }, 1000);
   }
@@ -128,8 +147,16 @@
       return;
     }
 
-    if (userAnswer === answers[level]) {
-      resultEl.innerText = messages[level];
+    let correct = false;
+
+    if (Array.isArray(answers[level])) {
+      correct = answers[level].includes(userAnswer);
+    } else {
+      correct = userAnswer === answers[level];
+    }
+
+    if (correct) {
+      resultEl.innerText = messages[level] || "";
       localStorage.removeItem(storageKey(level, "attempts"));
       localStorage.removeItem(storageKey(level, "lockTime"));
 
@@ -138,7 +165,11 @@
         document.getElementById("level2").classList.remove("hidden");
       } else if (level === 2) {
         document.getElementById("level2").classList.add("hidden");
+        document.getElementById("level3").classList.remove("hidden");
+      } else if (level === 3) {
+        document.getElementById("level3").classList.add("hidden");
         document.getElementById("final").classList.remove("hidden");
+        startFireworks();
       }
     } else {
       let attempts = parseInt(localStorage.getItem(storageKey(level, "attempts"))) || 0;
@@ -150,13 +181,65 @@
         localStorage.setItem(storageKey(level, "lockTime"), lockUntil);
         updateLockMessage(level);
       } else {
-        resultEl.innerText = "Attento sig. tartaruga, non sparare nomi a cazzo.";
+        resultEl.innerText = "Attento sig. tartaruga, non sparare nomi a cazzo. Potresti pentirtene...";
       }
     }
   }
 
+  function startFireworks() {
+    const canvas = document.getElementById("fireworks");
+    const ctx = canvas.getContext("2d");
+    canvas.classList.remove("hidden");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles = [];
+
+    function createFirework() {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height / 2;
+      const color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+
+      for (let i = 0; i < 50; i++) {
+        particles.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 5,
+          vy: (Math.random() - 0.5) * 5,
+          alpha: 1,
+          color
+        });
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.01;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+        } else {
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+
+      ctx.globalAlpha = 1;
+      requestAnimationFrame(animate);
+    }
+
+    setInterval(createFirework, 500);
+    animate();
+  }
+
   window.onload = () => {
-    [1, 2].forEach(level => {
+    [1, 2, 3].forEach(level => {
       if (isLocked(level)) updateLockMessage(level);
     });
   };
