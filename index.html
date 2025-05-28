@@ -79,14 +79,44 @@
     return `enigma_level${level}_${key}`;
   }
 
+  function formatTime(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+    const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+    const s = String(totalSeconds % 60).padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  }
+
+  function updateLockMessage(level) {
+    const resultEl = document.getElementById(`result${level}`);
+    const lockTime = localStorage.getItem(storageKey(level, "lockTime"));
+
+    if (!lockTime) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const remaining = parseInt(lockTime) - now;
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+        resultEl.innerText = "";
+        localStorage.removeItem(storageKey(level, "lockTime"));
+        localStorage.removeItem(storageKey(level, "attempts"));
+      } else {
+        resultEl.innerText = `EH! VOLEVI! Guarda che faccia non se lo aspettava. Puoi riprovare tra: ${formatTime(remaining)}`;
+      }
+    }, 1000);
+  }
+
   function isLocked(level) {
     const lockTime = localStorage.getItem(storageKey(level, "lockTime"));
     return lockTime && Date.now() < parseInt(lockTime);
   }
 
   function checkAnswer(level) {
+    const resultEl = document.getElementById(`result${level}`);
     if (isLocked(level)) {
-      document.getElementById(`result${level}`).innerText = "EH! VOLEVI! Guarda che faccia non se lo aspettava";
+      updateLockMessage(level);
       return;
     }
 
@@ -94,12 +124,12 @@
     const userAnswer = input.value.trim().toLowerCase();
 
     if (!userAnswer) {
-      document.getElementById(`result${level}`).innerText = "Inserisci una risposta.";
+      resultEl.innerText = "Inserisci una risposta.";
       return;
     }
 
     if (userAnswer === answers[level]) {
-      document.getElementById(`result${level}`).innerText = messages[level];
+      resultEl.innerText = messages[level];
       localStorage.removeItem(storageKey(level, "attempts"));
       localStorage.removeItem(storageKey(level, "lockTime"));
 
@@ -118,19 +148,17 @@
       if (attempts >= maxAttempts) {
         const lockUntil = Date.now() + blockDurationMs;
         localStorage.setItem(storageKey(level, "lockTime"), lockUntil);
-        document.getElementById(`result${level}`).innerText = "EH! VOLEVI! Guarda che faccia non se lo aspettava";
+        updateLockMessage(level);
       } else {
-        document.getElementById(`result${level}`).innerText = "Attento sig. tartaruga, non sparare nomi a cazzo.";
+        resultEl.innerText = "Attento sig. tartaruga, non sparare nomi a cazzo.";
       }
     }
   }
 
   window.onload = () => {
-    for(let level=1; level<=2; level++) {
-      if (isLocked(level)) {
-        document.getElementById(`result${level}`).innerText = "EH! VOLEVI! Guarda che faccia non se lo aspettava";
-      }
-    }
+    [1, 2].forEach(level => {
+      if (isLocked(level)) updateLockMessage(level);
+    });
   };
 </script>
 
