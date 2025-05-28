@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Enigma a due livelli</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background-color: #f9f9f9;
+      text-align: center;
+      padding: 20px;
+    }
+    input, button {
+      margin-top: 10px;
+      font-size: 1rem;
+      padding: 8px;
+    }
+    .hidden {
+      display: none;
+    }
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+      color: darkred;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="level1">
+    <h2>
+      Non è mai finita del tutto.<br />
+      Il futuro si costruisce sempre sul passato,<br />
+      anche se non ci sarò per vederlo.
+    </h2>
+    <input type="text" id="answer1" placeholder="Risposta..." autocomplete="off" />
+    <button onclick="checkAnswer(1)">Conferma</button>
+    <div id="result1"></div>
+  </div>
+
+  <div id="level2" class="hidden">
+    <h2>
+      Il dolore della tua assenza è acuto e ossessionante,<br />
+      e darei qualsiasi cosa per non saperlo;<br />
+      qualsiasi cosa tranne non conoscerti affatto (che sarebbe peggio)
+    </h2>
+    <input type="text" id="answer2" placeholder="Risposta..." autocomplete="off" />
+    <button onclick="checkAnswer(2)">Conferma</button>
+    <div id="result2"></div>
+  </div>
+
+  <div id="final" class="hidden">
+    <h2>
+      Ma bravi ELIBOBI, con questo posso dire che avete davvero giocato ad Outer Wilds, bello eh?<br><br>
+      "Accettare la fine per un nuovo inizio, senza dimenticare di apprezzare il profumo dei pini sulla strada che ti porta alla fine del percorso".
+    </h2>
+  </div>
+
+<script>
+  const answers = {
+    1: "riebeck",
+    2: "plume"
+  };
+
+  const messages = {
+    1: "Ma bravi ELIBOBI, ci siete quasi, ora vi mancano solo altri 6 enigmi e finalmente potrete aprire la cassaforte.",
+    2: "Complimenti stavolta ce l'avete fatta per davvero"
+  };
+
+  const maxAttempts = 2;
+  const blockDurationMs = 24 * 60 * 60 * 1000; // 24 ore
+
+  function storageKey(level, key) {
+    return `enigma_level${level}_${key}`;
+  }
+
+  function isLocked(level) {
+    const lockTime = localStorage.getItem(storageKey(level, "lockTime"));
+    return lockTime && Date.now() < parseInt(lockTime);
+  }
+
+  function checkAnswer(level) {
+    if (isLocked(level)) {
+      const unlockDate = new Date(parseInt(localStorage.getItem(storageKey(level, "lockTime"))));
+      document.getElementById(`result${level}`).innerText = `Hai superato i tentativi per il livello ${level}. Riprova dopo il ${unlockDate.toLocaleString()}`;
+      return;
+    }
+
+    const input = document.getElementById(`answer${level}`);
+    const userAnswer = input.value.trim().toLowerCase();
+
+    if (!userAnswer) {
+      document.getElementById(`result${level}`).innerText = "Inserisci una risposta.";
+      return;
+    }
+
+    if (userAnswer === answers[level]) {
+      document.getElementById(`result${level}`).innerText = messages[level];
+      localStorage.removeItem(storageKey(level, "attempts"));
+      localStorage.removeItem(storageKey(level, "lockTime"));
+
+      if (level === 1) {
+        document.getElementById("level1").classList.add("hidden");
+        document.getElementById("level2").classList.remove("hidden");
+      } else if (level === 2) {
+        document.getElementById("level2").classList.add("hidden");
+        document.getElementById("final").classList.remove("hidden");
+      }
+    } else {
+      let attempts = parseInt(localStorage.getItem(storageKey(level, "attempts"))) || 0;
+      attempts++;
+      localStorage.setItem(storageKey(level, "attempts"), attempts);
+
+      if (attempts >= maxAttempts) {
+        const lockUntil = Date.now() + blockDurationMs;
+        localStorage.setItem(storageKey(level, "lockTime"), lockUntil);
+        document.getElementById(`result${level}`).innerText = `Hai esaurito i tentativi per il livello ${level}. Riprova tra 24 ore (${new Date(lockUntil).toLocaleString()}).`;
+      } else {
+        document.getElementById(`result${level}`).innerText = `Risposta errata. Tentativi rimasti: ${maxAttempts - attempts}`;
+      }
+    }
+  }
+
+  window.onload = () => {
+    for(let level=1; level<=2; level++) {
+      if (isLocked(level)) {
+        const unlockDate = new Date(parseInt(localStorage.getItem(storageKey(level, "lockTime"))));
+        document.getElementById(`result${level}`).innerText = `Hai superato i tentativi per il livello ${level}. Riprova dopo il ${unlockDate.toLocaleString()}`;
+      }
+    }
+  };
+</script>
+
+</body>
+</html>
